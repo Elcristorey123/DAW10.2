@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Productos - Lab 10</title>
+    <style>
+        /* --- ESTILOS CSS (Se mantienen igual) --- */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --border-color: #e5e7eb;
+            --danger-color: #dc2626;
+            --warning-color: #d97706;
+            --success-color: #059669;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem; }
+
+        .container { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+
+        header { text-align: center; margin-bottom: 1rem; }
+        header h1 { color: var(--primary-color); font-size: 2rem; }
+        header p { color: #6b7280; margin-top: 0.5rem; }
+
+        .card { background-color: var(--card-bg); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card h2 { font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .btn-primary { background-color: var(--primary-color); color: white; width: 100%; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        
+        /* Botón de cancelar edición (oculto por defecto) */
+        .btn-cancel { background-color: #6b7280; color: white; width: 100%; margin-top: 0.5rem; display: none; }
+        .btn-cancel:hover { background-color: #4b5563; }
+
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f9fafb; font-weight: 600; color: #4b5563; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        td { font-size: 0.9rem; }
+
+        .action-buttons { display: flex; gap: 0.5rem; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 4px; color: white; border: none; cursor: pointer; }
+        .btn-edit { background-color: var(--warning-color); }
+        .btn-edit:hover { background-color: #b45309; }
+        .btn-delete { background-color: var(--danger-color); }
+        .btn-delete:hover { background-color: #b91c1c; }
+
+        .badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background-color: #d1fae5; color: #065f46; }
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-danger { background-color: #fee2e2; color: #991b1b; }
+
+        /* Mensajes de alerta */
+        #mensaje { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; display: none; font-weight: bold; }
+        .msg-success { background-color: #d1fae5; color: #065f46; }
+        .msg-error { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Gestión de Productos</h1>
+            <p>Práctica de Desarrollo de Aplicaciones Web - Semana 10</p>
+        </header>
+
+        <!-- Mensaje de alerta (oculto por defecto) -->
+        <div id="mensaje"></div>
+
+        <!-- Formulario -->
+        <div class="card">
+            <h2 id="form-title">Agregar Nuevo Producto</h2>
+            <form id="producto-form">
+                <input type="hidden" id="producto-id"> <!-- Guarda el ID cuando editamos -->
+                
+                <div class="form-group">
+                    <label for="nombre">Nombre del Producto</label>
+                    <input type="text" id="nombre" placeholder="Ej. Laptop HP" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="precio">Precio ($)</label>
+                        <input type="number" id="precio" step="0.01" placeholder="Ej. 1200.50" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="stock">Stock</label>
+                        <input type="number" id="stock" placeholder="Ej. 10" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar Producto</button>
+                <button type="button" class="btn btn-cancel" id="btn-cancelar">Cancelar Edición</button>
+            </form>
+        </div>
+
+        <!-- Tabla -->
+        <div class="card">
+            <h2>Lista de Productos</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-productos">
+                        <!-- Los productos se cargarán aquí dinámicamente con JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA DE JAVASCRIPT -->
+    <script>
+        // URL base de nuestra API (recuerda que Express corre en el puerto 3000)
+        const API_URL = 'http://localhost:3000/api/productos';
+
+        // Referencias al DOM
+        const form = document.getElementById('producto-form');
+        const tabla = document.getElementById('tabla-productos');
+        const formTitle = document.getElementById('form-title');
+        const btnGuardar = document.getElementById('btn-guardar');
+        const btnCancelar = document.getElementById('btn-cancelar');
+        const inputId = document.getElementById('producto-id');
+        const inputNombre = document.getElementById('nombre');
+        const inputPrecio = document.getElementById('precio');
+        const inputStock = document.getElementById('stock');
+        const mensajeDiv = document.getElementById('mensaje');
+
+        // Función para mostrar mensajes de éxito o error
+        function mostrarMensaje(texto, tipo) {
+            mensajeDiv.textContent = texto;
+            mensajeDiv.className = tipo === 'success' ? 'msg-success' : 'msg-error';
+            mensajeDiv.style.display = 'block';
+            setTimeout(() => { mensajeDiv.style.display = 'none'; }, 3000);
+        }
+
+        // 1. CARGAR PRODUCTOS (GET)
+        async function cargarProductos() {
+            try {
+                const response = await fetch(API_URL);
+                const productos = await response.json();
+                
+                tabla.innerHTML = ''; // Limpiar tabla
+
+                if (productos.length === 0) {
+                    tabla.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay productos registrados</td></tr>';
+                    return;
+                }
+
+                productos.forEach(prod => {
+                    // Determinar color del badge según el stock
+                    let badgeClass = 'badge-success';
+                    if (prod.stock <= 0) badgeClass = 'badge-danger';
+                    else if (prod.stock <= 5) badgeClass = 'badge-warning';
+
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${prod.id}</td>
+                        <td>${prod.nombre}</td>
+                        <td>$${parseFloat(prod.precio).toFixed(2)}</td>
+                        <td><span class="badge ${badgeClass}">${prod.stock}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-edit" onclick="prepararEdicion(${prod.id}, '${prod.nombre}', ${prod.precio}, ${prod.stock})">Editar</button>
+                                <button class="btn btn-sm btn-delete" onclick="eliminarProducto(${prod.id})">Eliminar</button>
+                            </div>
+                        </td>
+                    `;
+                    tabla.appendChild(fila);
+                });
+            } catch (error) {
+                mostrarMensaje('Error al cargar los productos. Verifica que el servidor esté corriendo.', 'error');
+                console.error(error);
+            }
+        }
+
+        // 2. GUARDAR O ACTUALIZAR PRODUCTO (POST / PUT)
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Evitar que la página se recargue
+
+            const id = inputId.value;
+            const producto = {
+                nombre: inputNombre.value,
+                precio: parseFloat(inputPrecio.value),
+                stock: parseInt(inputStock.value)
+            };
+
+            const esEdicion = id !== '';
+            const url = esEdicion ? `${API_URL}/${id}` : API_URL;
+            const metodo = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: metodo,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(producto)
+                });
+
+                if (response.ok) {
+                    mostrarMensaje(esEdicion ? 'Producto actualizado correctamente' : 'Producto creado correctamente', 'success');
+                    resetFormulario();
+                    cargarProductos(); // Recargar la tabla
+                } else {
+                    const errorData = await response.json();
+                    mostrarMensaje(errorData.error || 'Error en la operación', 'error');
+                }
+            } catch (error) {
+                mostrarMensaje('Error de conexión con el servidor', 'error');
+                console.error(error);
+            }
+        });
+
+        // 3. ELIMINAR PRODUCTO (DELETE)
+        async function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                
+                if (response.ok) {
+                    mostrarMensaje('Producto eliminado correctamente', 'success');
+                    cargarProductos(); // Recargar la tabla
+                } else {
+                    const errorData = await response.json();
+                    mostrarMensaje(errorData.error || 'Error al eliminar', 'error');
+                }
+            } catch (error) {
+                mostrarMensaje('Error de conexión con el servidor', 'error');
+                console.error(error);
+            }
+        }
+
+        // 4. PREPARAR FORMULARIO PARA EDITAR (Llena los datos en el form)
+        function prepararEdicion(id, nombre, precio, stock) {
+            inputId.value = id;
+            inputNombre.value = nombre;
+            inputPrecio.value = precio;
+            inputStock.value = stock;
+
+            formTitle.textContent = `Editando Producto (ID: ${id})`;
+            btnGuardar.textContent = 'Actualizar Producto';
+            btnGuardar.style.backgroundColor = 'var(--warning-color)'; // Cambiar color del botón
+            btnCancelar.style.display = 'block'; // Mostrar botón de cancelar
+        }
+
+        // 5. RESETEAR FORMULARIO A SU ESTADO INICIAL
+        function resetFormulario() {
+            form.reset();
+            inputId.value = '';
+            formTitle.textContent = 'Agregar Nuevo Producto';
+            btnGuardar.textContent = 'Guardar Producto';
+            btnGuardar.style.backgroundColor = 'var(--primary-color)';
+            btnCancelar.style.display = 'none';
+        }
+
+        // Evento para cancelar edición
+        btnCancelar.addEventListener('click', resetFormulario);
+
+        // 6. INICIALIZAR LA PÁGINA
+        // Cargar productos tan pronto como se abra la página
+        document.addEventListener('DOMContentLoaded', cargarProductos);
+
+    </script>
+</body>
+</html>
